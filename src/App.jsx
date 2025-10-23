@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
 import { Toaster } from "react-hot-toast";
+import AllTasks from './Pages/dashboard/AllTasks';
 
 
 // Lazy load pages
@@ -41,7 +42,6 @@ const Settings = lazy(() => import('./Pages/admin/Settings'));
 const Tasks = lazy(() => import('./Pages/admin/Tasks'));
 const AdminChat = lazy(() => import('./Pages/admin/Chat/AdminChat'));
 const AdminSpectators = lazy(() => import('./Pages/admin/AdminSpectators'));
-const AddSpectators = lazy(() => import('./Pages/admin/AddSpectators'));
 
 // Spectator
 const SpectatorLayout = lazy(() => import('./Pages/spectator/SpectatorLayout'));
@@ -104,6 +104,7 @@ export default function App() {
           <Route index element={<DashboardHome />} />
           <Route path="survey" element={<Survey />} />
           <Route path="offers" element={<Offers />} />
+          <Route path="alltasks" element={<AllTasks />} />
           <Route path="more" element={<More />} />
           <Route path="profile" element={<Profile />} />
           <Route path="withdrawal" element={<Withdrawal />} />
@@ -131,7 +132,6 @@ export default function App() {
           <Route path="settings" element={<Settings />} />
           <Route path="chat" element={<AdminChat />} />
           <Route path="spectators" element={<AdminSpectators />} />
-          <Route path="spectators/add" element={<AddSpectators />} />
         </Route>
 
         {/* Spectator Dashboard */}

@@ -1,36 +1,98 @@
+// src/pages/admin/DashboardHome.jsx
 import { useEffect, useState } from 'react';
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../../firebase'; // adjust the path if needed
 
 export default function DashboardHome() {
   const [stats, setStats] = useState({
-    totalTasks: 350,
-    completed: 290,
-    uncompleted: 40,
-    remaining: 20,
-    userEarnings: 14500,
-    companyEarnings: 5500,
-    totalUsers: 1000,
-    activeUsers: 780,
-    oldUsers: 220,
-    suspended: 15,
-    blocked: 5
+    totalTasks: 0,
+    completed: 0,
+    uncompleted: 0,
+    remaining: 0,
+    userEarnings: 0,
+    companyEarnings: 0,
+    totalUsers: 0,
+    activeUsers: 0,
+    oldUsers: 0,
+    suspended: 0,
+    blocked: 0,
   });
 
-  const [topUsers, setTopUsers] = useState([
-    { name: 'Isaac', earnings: 1200, points: 240 },
-    { name: 'Ada', earnings: 1050, points: 220 },
-    { name: 'John', earnings: 980, points: 210 },
-    { name: 'Fatima', earnings: 920, points: 190 },
-    { name: 'Chinedu', earnings: 850, points: 180 },
-  ]);
+  const [topUsers, setTopUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // TODO: Replace with real backend call
-    // Example:
-    // api.get('/admin/leaderboard').then(res => setTopUsers(res.data));
+    async function fetchDashboardData() {
+      try {
+        // 🧩 Fetch all users
+        const usersSnapshot = await getDocs(collection(db, 'users'));
+        const users = usersSnapshot.docs.map((d) => ({
+          id: d.id,
+          ...d.data(),
+        }));
+
+        // 🧮 Compute stats
+        const totalUsers = users.length;
+        const activeUsers = users.filter((u) => u.status === 'active').length;
+        const suspended = users.filter((u) => u.status === 'suspended').length;
+        const blocked = users.filter((u) => u.status === 'blocked').length;
+
+        // Example: old users = created more than 30 days ago
+        const oldUsers = users.filter((u) => {
+          if (!u.createdAt) return false;
+          const createdAt = u.createdAt.toDate ? u.createdAt.toDate() : new Date(u.createdAt);
+          const daysOld = (Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24);
+          return daysOld > 30;
+        }).length;
+
+        // 🪙 Calculate total user earnings
+        const userEarnings = users.reduce((sum, u) => sum + (u.earnings || 0), 0);
+
+        // 🏢 Example: company earnings = 20% of user earnings
+        const companyEarnings = userEarnings * 0.2;
+
+        // 🏆 Leaderboard: top 5 users by points
+        const topUsers = [...users]
+          .filter((u) => u.role === 'user')
+          .sort((a, b) => (b.points || 0) - (a.points || 0))
+          .slice(0, 5);
+
+        // You can also fetch surveys or tasks from other collections if needed
+        const totalTasks = 350; // static placeholder for now
+        const completed = 290;
+        const uncompleted = 40;
+        const remaining = 20;
+
+        setStats({
+          totalTasks,
+          completed,
+          uncompleted,
+          remaining,
+          userEarnings,
+          companyEarnings,
+          totalUsers,
+          activeUsers,
+          oldUsers,
+          suspended,
+          blocked,
+        });
+
+        setTopUsers(topUsers);
+      } catch (err) {
+        console.error('❌ Failed to fetch dashboard data:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchDashboardData();
   }, []);
 
-  // Sort by points descending
-  const sortedUsers = [...topUsers].sort((a, b) => b.points - a.points);
+  const sortedUsers = [...topUsers].sort((a, b) => (b.points || 0) - (a.points || 0));
+
+  if (loading) {
+    return <div className="p-6 text-gray-500 text-center">Loading dashboard...</div>;
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -43,8 +105,8 @@ export default function DashboardHome() {
           ['Completed Tasks', stats.completed],
           ['Uncompleted Tasks', stats.uncompleted],
           ['Remaining Tasks', stats.remaining],
-          ['User Earnings ($)', `$${stats.userEarnings}`],
-          ['Company Earnings ($)', `$${stats.companyEarnings}`],
+          ['User Earnings ($)', `$${stats.userEarnings.toFixed(2)}`],
+          ['Company Earnings ($)', `$${stats.companyEarnings.toFixed(2)}`],
           ['Total Users', stats.totalUsers],
           ['Active Users', stats.activeUsers],
           ['Old Users', stats.oldUsers],
@@ -58,7 +120,7 @@ export default function DashboardHome() {
         ))}
       </div>
 
-      {/* Top Leaderboard with Points */}
+      {/* Top Leaderboard */}
       <div className="bg-white rounded-lg shadow p-6">
         <h3 className="text-lg font-semibold text-gray-700 mb-4">🏆 Top Users (Points)</h3>
         <table className="w-full text-left">
@@ -72,13 +134,22 @@ export default function DashboardHome() {
           </thead>
           <tbody>
             {sortedUsers.map((user, index) => (
-              <tr key={user.name} className="border-b">
+              <tr key={user.id} className="border-b">
                 <td className="py-2">{index + 1}</td>
-                <td>{user.name}</td>
-                <td className="font-semibold text-blue-700">{user.points}</td>
-                <td className="text-green-600 font-semibold">${user.earnings}</td>
+                <td>{user.name || 'Unnamed'}</td>
+                <td className="font-semibold text-blue-700">{user.points || 0}</td>
+                <td className="text-green-600 font-semibold">
+                  ${user.earnings ? user.earnings.toFixed(2) : '0.00'}
+                </td>
               </tr>
             ))}
+            {sortedUsers.length === 0 && (
+              <tr>
+                <td colSpan="4" className="py-4 text-center text-gray-400">
+                  No users found.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
       </div>

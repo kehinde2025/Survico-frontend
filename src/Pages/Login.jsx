@@ -24,6 +24,7 @@ export default function Login() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // ✅ Email/Password login
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
@@ -37,6 +38,7 @@ export default function Login() {
       );
       const user = userCred.user;
 
+      // 🔎 Get user record from Firestore
       const userRef = doc(db, "users", user.uid);
       const userSnap = await getDoc(userRef);
 
@@ -48,21 +50,36 @@ export default function Login() {
 
       const userData = userSnap.data();
 
-      // ✅ Store in localStorage for ProtectedRoute
-      localStorage.setItem("user", JSON.stringify(userData));
+      // ✅ Save in localStorage
+      const fullUserData = { uid: user.uid, email: user.email, ...userData };
+      localStorage.setItem("user", JSON.stringify(fullUserData));
       localStorage.setItem("token", user.accessToken);
 
       toast.dismiss(toastId);
-      toast.success("Welcome back! 🎉");
+      toast.success(`Welcome back, ${userData.name || "User"} 🎉`);
 
-      navigate("/dashboard");
+      // 🚀 Redirect based on role
+      switch (userData.role) {
+        case "admin":
+          navigate("/admin");
+          break;
+        case "spectator":
+        case "inspector":
+          navigate("/spectator");
+          break;
+        default:
+          navigate("/dashboard");
+          break;
+      }
     } catch (err) {
+      console.error("Login error:", err);
       toast.dismiss(toastId);
       toast.error("Invalid credentials.");
       setLoginError("Invalid credentials.");
     }
   };
 
+  // ✅ Google Login (with auto Firestore sync)
   const handleGoogleSignIn = async () => {
     const toastId = toast.loading("Signing in with Google...");
     try {
@@ -74,9 +91,11 @@ export default function Login() {
 
       let userData;
       if (!userSnap.exists()) {
+        // 👇 Default role for Google users — change if needed
         userData = {
           name: user.displayName,
           email: user.email,
+          role: "user",
           balance: 0,
           points: 0,
           referrals: 0,
@@ -88,14 +107,28 @@ export default function Login() {
         userData = userSnap.data();
       }
 
-      // ✅ Save user + token
-      localStorage.setItem("user", JSON.stringify(userData));
+      const fullUserData = { uid: user.uid, email: user.email, ...userData };
+      localStorage.setItem("user", JSON.stringify(fullUserData));
       localStorage.setItem("token", user.accessToken);
 
       toast.dismiss(toastId);
       toast.success("Google login successful!");
-      navigate("/dashboard");
+
+      // 🚀 Redirect based on role
+      switch (userData.role) {
+        case "admin":
+          navigate("/admin");
+          break;
+        case "spectator":
+        case "inspector":
+          navigate("/spectator");
+          break;
+        default:
+          navigate("/dashboard");
+          break;
+      }
     } catch (error) {
+      console.error("Google login error:", error);
       toast.dismiss(toastId);
       toast.error("Google login failed.");
     }

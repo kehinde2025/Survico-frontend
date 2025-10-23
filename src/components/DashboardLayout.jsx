@@ -1,6 +1,6 @@
 // src/components/DashboardLayout.jsx
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { Home, ListChecks, Gift, Menu } from 'lucide-react';
+import { Home, ListChecks, Gift, Menu, Paperclip } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 export default function DashboardLayout() {
@@ -20,7 +20,9 @@ export default function DashboardLayout() {
     { label: 'Home', icon: <Home size={20} />, path: '/dashboard' },
     { label: 'Survey', icon: <ListChecks size={20} />, path: '/dashboard/survey' },
     { label: 'Offers', icon: <Gift size={20} />, path: '/dashboard/offers' },
+    { label: 'Tasks', icon: <Paperclip size={20} />, path: '/dashboard/alltasks', hasBadge: true },
     { label: 'More', icon: <Menu size={20} />, path: '/dashboard/more', hasBadge: true },
+    
   ];
 
   return (

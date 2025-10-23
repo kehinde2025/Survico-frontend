@@ -1,5 +1,13 @@
-// src/Pages/admin/Tasks.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { db, auth } from "../../firebase"; // ✅ adjust path if different
+import {
+  collection,
+  addDoc,
+  onSnapshot,
+  query,
+  orderBy,
+  serverTimestamp,
+} from "firebase/firestore";
 
 export default function Tasks() {
   const [tasks, setTasks] = useState([]);
@@ -10,21 +18,66 @@ export default function Tasks() {
     link: "",
     category: "Survey",
   });
+  const [loading, setLoading] = useState(false);
 
+  // 🔥 Real-time listener for all tasks
+  useEffect(() => {
+    const q = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetched = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setTasks(fetched);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Handle input changes
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleAddTask = (e) => {
+  // Add new task to Firestore
+  const handleAddTask = async (e) => {
     e.preventDefault();
-    const newTask = { ...formData, id: Date.now() };
-    setTasks([...tasks, newTask]);
-    setFormData({ title: "", description: "", reward: "", link: "", category: "Survey" });
+    setLoading(true);
+
+    try {
+      const user = auth.currentUser;
+      if (!user) {
+        alert("You must be logged in as an admin to add tasks.");
+        return;
+      }
+
+      await addDoc(collection(db, "tasks"), {
+        ...formData,
+        reward: Number(formData.reward),
+        createdAt: serverTimestamp(),
+        createdBy: user.uid,
+        status: "active",
+      });
+
+      setFormData({
+        title: "",
+        description: "",
+        reward: "",
+        link: "",
+        category: "Survey",
+      });
+
+      alert("✅ Task added successfully!");
+    } catch (error) {
+      console.error("Error adding task:", error);
+      alert("❌ Failed to add task: " + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Tasks</h1>
+      <h1 className="text-2xl font-bold mb-4">Tasks Management</h1>
 
       {/* Add Task Form */}
       <form
@@ -83,9 +136,10 @@ export default function Tasks() {
 
         <button
           type="submit"
+          disabled={loading}
           className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
         >
-          + Add Task
+          {loading ? "Adding..." : "+ Add Task"}
         </button>
       </form>
 
@@ -103,7 +157,12 @@ export default function Tasks() {
               </p>
               <p className="text-sm">
                 <span className="font-semibold">Link:</span>{" "}
-                <a href={task.link} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">
+                <a
+                  href={task.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 underline"
+                >
                   Visit Task
                 </a>
               </p>
