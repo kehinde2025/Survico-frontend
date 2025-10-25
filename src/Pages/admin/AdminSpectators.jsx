@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../firebase'; // adjust the path if needed
+import { db } from '../../firebase'; // adjust the path if needed
 
 export default function AdminSpectators() {
   const [spectators, setSpectators] = useState([]);
