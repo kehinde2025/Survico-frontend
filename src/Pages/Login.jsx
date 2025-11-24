@@ -32,7 +32,7 @@ export default function Login() {
     const toastId = toast.loading("Logging you in...");
     try {
       const userCred = await signInWithEmailAndPassword(
-        auth,
+        auth, 
         formData.email,
         formData.password
       );
